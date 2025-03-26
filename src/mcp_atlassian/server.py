@@ -8,7 +8,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from mcp.server import Server
-from mcp.types import Resource, TextContent, Tool
+from mcp.types import Resource, TextContent, Tool, ImageContent
 
 from .confluence import ConfluenceFetcher
 from .jira import JiraFetcher
@@ -312,6 +312,20 @@ async def list_tools() -> list[Tool]:
         # Always add read operations
         tools.extend(
             [
+                Tool(
+                    name="confluence_get_attachments",
+                    description="Get attachments from a specific Confluence page",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "page_id": {
+                                "type": "string",
+                                "description": "ID of the Confluence page to retrieve attachments from",
+                            }
+                        },
+                        "required": ["page_id"]
+                    }
+                ),
                 Tool(
                     name="confluence_search",
                     description="Search Confluence content using simple terms or CQL",
@@ -879,7 +893,7 @@ async def list_tools() -> list[Tool]:
 
 
 @app.call_tool()
-async def call_tool(name: str, arguments: Any) -> Sequence[TextContent]:
+async def call_tool(name: str, arguments: Any) -> Sequence[TextContent] | Sequence[ImageContent]:
     """Handle tool calls for Confluence and Jira operations."""
     ctx = app.request_context.lifespan_context
 
@@ -1166,6 +1180,18 @@ async def call_tool(name: str, arguments: Any) -> Sequence[TextContent]:
                         ),
                     )
                 ]
+        elif name == "confluence_get_attachments":
+            if not ctx or not ctx.confluence:
+                raise ValueError("Confluence is not configured.")
+
+            page_id = arguments.get("page_id")
+            attachments = ctx.confluence.get_attachments_from_page_id(page_id)
+            return [
+                ImageContent(
+                    type="image",
+                    data=attachment,
+                    mimeType="image/jpeg"
+                ) for attachment in attachments]
 
         # Jira operations
         elif name == "jira_get_issue" and ctx and ctx.jira:

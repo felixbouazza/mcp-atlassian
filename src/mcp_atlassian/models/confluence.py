@@ -280,6 +280,39 @@ class ConfluenceComment(ApiModel, TimestampMixin):
 
         return result
 
+class ConfluenceAttachment(ApiModel):
+    """
+    Model representing a Confluence attachment.
+
+    This model only includes the content of the attachment.
+    """
+    file_name: str
+    content: str
+
+    @classmethod
+    def from_api_response(cls, data: dict[str, Any], **kwargs: Any) -> "ConfluenceAttachment":
+        """
+        Create a ConfluenceAttachment from a Confluence API response.
+
+        Args:
+            data: The attachment data from the Confluence API
+
+        Returns:
+            A ConfluenceAttachment instance
+        """
+        if not data:
+            return cls()
+        return cls(
+            file_name=data.get("file_name", EMPTY_STRING),
+            content=data.get("content", EMPTY_STRING)
+        )
+
+    def to_simplified_dict(self) -> dict[str, Any]:
+        """Convert to simplified dictionary for API response."""
+        return {
+            "file_name": self.file_name,
+            "content": self.content
+        }
 
 class ConfluencePage(ApiModel, TimestampMixin):
     """
